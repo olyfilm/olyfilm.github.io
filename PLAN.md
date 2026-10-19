@@ -2,7 +2,7 @@
 
 SPA 100% estática (GitHub Pages, sin backend propio) que, a partir de un **guion en Markdown** y una **colección de video/audio propios**, produce un **short vertical 9:16 listo para subir** a Instagram Reels / TikTok.
 
-El core es IA: lee el guion, transcribe el audio a subtítulos, evalúa el material, corta, y complementa con B-roll de Pexels cuando falta material.
+El core es IA: lee el guion, transcribe el audio a subtítulos, evalúa el material, corta, y complementa opcionalmente con B-roll de Pexels o Pixabay cuando falta material.
 
 > Estado: planificación. Este documento es la fuente de verdad del diseño; se actualiza a medida que avanza.
 
@@ -16,14 +16,14 @@ El core es IA: lee el guion, transcribe el audio a subtítulos, evalúa el mater
 | Cerebro (LLM) | **BYO API key** multi-proveedor en `localStorage` | Calidad real sin backend. **Claude (Anthropic) directo** (soporta browser access). **OpenAI directo NO se puede** desde una SPA estática (bloquea CORS), así que los modelos de OpenAI (GPT-4o…) van **vía OpenRouter** (compatible con OpenAI, CORS ok). Selector de proveedor en ⚙ Ajustes. |
 | Render final | **WebCodecs + muxer MP4** (`mp4-muxer`) | Encode/decode por hardware, rápido; ideal para reels cortos. ffmpeg.wasm queda como fallback evaluable. |
 | Transcripción | **Whisper vía transformers.js** (WebGPU), fallback Web Speech API | En el browser, sin servicio externo. |
-| B-roll | **Pexels API** directa (CORS ok) con API key del usuario | Simple y gratis. |
+| B-roll | **Opcional: Pexels o Pixabay**, con API key del usuario y selector en Ajustes | Se puede desactivar y usar sólo material propio. |
 | Stack UI | **Vite + React + TypeScript**, estado con **Zustand** | Editor con timeline = estado complejo; conviene framework. |
 | Persistencia assets | **IndexedDB** (blobs de video/audio) | Los archivos pueden ser grandes; no caben en localStorage. |
 | Proyecto editable | **File System Access API** para guardar/abrir `*.olyfilm` | Retomar edición sin backend. |
 | Preview | Composición en vivo (canvas + `<video>` + WebAudio) | No se renderiza a archivo hasta exportar. |
 
 ### "Sin backend" ≠ "sin servicios externos"
-Quedan dos dependencias de red con clave del usuario: el **proveedor LLM** y **Pexels**. Ambas se llaman directo desde el browser. Riesgo conocido: la API key vive en el browser; aceptable para uso personal, a revisar si algún día se comparte la app.
+Quedan dos dependencias de red con clave del usuario: el **proveedor LLM** y, opcionalmente, **Pexels o Pixabay**. Ambas se llaman directo desde el browser. Riesgo conocido: la API key vive en el browser; aceptable para uso personal, a revisar si algún día se comparte la app.
 
 ---
 
@@ -50,8 +50,8 @@ JSON versionado. Los blobs de video/audio **no** se embeben; se referencian y vi
     "blocks": [ { "id", "tStart", "tEnd", "estructura", "locucion", "textoPantalla", "corte", "imagenEdicion" } ]
   },
   "assets": [
-    { "id", "kind": "video|audio", "name", "origin": "local|pexels",
-      "duration", "resolution", "blobRef": "<idb-key>", "pexelsId": null }
+    { "id", "kind": "video|audio", "name", "origin": "local|pexels|pixabay",
+      "duration", "resolution", "blobRef": "<idb-key>", "pexelsId": null, "pixabayId": null }
   ],
   "timeline": {
     "tracks": [
@@ -118,7 +118,7 @@ Cada paso emite eventos (`status`, `detail`) que alimentan los spinners y el log
 2. **Inventariar material propio** → leer duración/resolución de cada clip; extraer pista de audio.
 3. **Transcribir** audio de los clips con Whisper → segmentos con timestamps → candidatos de subtítulos.
 4. **Matchear** bloques del guion ↔ clips propios (por los `[CORTE]` y las descripciones de "Imagen y edición"). El LLM elige qué clip encaja en cada bloque.
-5. **Detectar huecos** → bloques sin material propio → query a Pexels (el LLM arma la búsqueda a partir de la descripción) → descargar candidatos a IndexedDB.
+5. **Detectar huecos** → bloques sin material propio → query al proveedor de B-roll seleccionado (si está habilitado) (el LLM arma la búsqueda a partir de la descripción) → descargar candidatos a IndexedDB.
 6. **Ensamblar EDL** → cortar clips a los tiempos del guion, ubicar textos en pantalla + subtítulos, colocar música si hay.
 7. **Listo** → abrir el editor con el proyecto cargado y la preview reproducible.
 
@@ -141,7 +141,9 @@ src/
     guion/          # parser de Markdown → blocks
     ai/             # cliente LLM (BYO key), prompts, planner de edición, medidor de tokens
     transcribe/     # Whisper (transformers.js) + fallback
-    pexels/         # cliente API + descarga
+    broll/          # proveedor opcional + búsqueda y descarga comunes
+    pexels/         # cliente API Pexels
+    pixabay/        # cliente API Pixabay + caché de búsquedas de 24 h
     edl/            # modelo EDL, operaciones (split, trim, insert)
     render/         # WebCodecs encode + mp4-muxer
     project/        # serializar/parsear .olyfilm, IndexedDB, FS Access
@@ -204,3 +206,7 @@ Orden recomendado para arrancar: **H0 → H2** (scaffold y después validar el r
 - Estilos de subtítulo: ¿presets fijos o editables por prompt?
 - ¿Música: sólo del material propio o también biblioteca (Pexels no da música; evaluar fuente)?
 - Nombre/branding y favicon de la app.
+
+### B-roll opcional (implementado)
+
+Ajustes permite desactivar el B-roll o elegir Pexels/Pixabay con claves independientes. Las instalaciones nuevas arrancan desactivadas; una clave Pexels existente conserva ese proveedor. Panel manual común, procedencia e ID por proveedor en los assets, compatible con proyectos anteriores. Pixabay usa búsqueda en español y recorte del editor a 9:16. Validación con respuestas simuladas y build; pendiente prueba con claves reales.

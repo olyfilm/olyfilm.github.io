@@ -10,7 +10,7 @@ import { putBlob } from '@/core/storage/idb';
 import { Preview } from '@/editor/Preview';
 import { Timeline, fmtTime } from '@/editor/Timeline';
 import { AiPanel } from '@/editor/AiPanel';
-import { PexelsPanel } from '@/editor/PexelsPanel';
+import { BrollPanel } from '@/editor/BrollPanel';
 
 const QUALITY = {
   '1080': { w: 1080, h: 1920, bitrate: 8_000_000, label: '1080×1920 (alta)' },
@@ -41,6 +41,7 @@ export function EditorScreen() {
     setProject: s.setProject,
     goTo: s.goTo,
   }));
+  const brollProvider = useApp((s) => s.brollProvider);
   const [render, setRender] = useState<RenderState>({ status: 'idle' });
   const [quality, setQuality] = useState<'1080' | '720'>('1080');
 
@@ -164,7 +165,7 @@ export function EditorScreen() {
           </div>
         )}
 
-        <PexelsPanel project={project} />
+        <BrollPanel key={brollProvider} project={project} />
 
         <div className="sidebar__block sidebar__block--grow">
           <h3>Colección ({project.assets.length})</h3>
@@ -174,7 +175,7 @@ export function EditorScreen() {
               return (
                 <li key={a.id} className={`collection__item${missing ? ' is-missing' : ''}`}>
                   <span className="collection__icon">
-                    {a.kind === 'audio' ? '🎵' : a.origin === 'pexels' ? '🅿️' : '🎬'}
+                    {a.kind === 'audio' ? '🎵' : a.origin === 'pixabay' ? '🌄' : a.origin === 'pexels' ? '🅿️' : '🎬'}
                   </span>
                   <span className="collection__name">{a.name}</span>
                   {missing && (

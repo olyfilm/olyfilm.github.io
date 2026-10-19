@@ -12,7 +12,7 @@ Sitio: **https://olyfilm.github.io/** · Target de ejecución: **iPhone 17+ (iOS
 2. **Cocinado** — analiza el material, **transcribe el audio con Whisper** (local, transformers.js)
    y arma el montaje (EDL).
 3. **Editor** — preview en vivo 9:16 (WYSIWYG con el export), timeline con los clips y subtítulos,
-   **edición por prompts con IA**, y **B-roll de Pexels**.
+   **edición por prompts con IA**, y **B-roll opcional de Pexels o Pixabay**.
 4. **Export** — render a **MP4 H.264 + AAC** con WebCodecs (fallback ffmpeg.wasm donde no hay AAC nativo).
 5. **Guardar / reabrir** `.olyfilm` (el material persiste en IndexedDB del navegador).
 
@@ -32,7 +32,11 @@ Se cargan desde la UI y se guardan **sólo en el `localStorage` de tu navegador*
 código ni en el repo:
 
 - **Anthropic** — para la edición por prompts con IA. https://console.anthropic.com/
-- **Pexels** — para el B-roll. Key gratuita en https://www.pexels.com/api/
+- **B-roll** — en ⚙ Ajustes elegí **Desactivado**, **Pexels** o **Pixabay**. Sólo necesitás la clave del proveedor elegido. Las claves se conservan al cambiar o desactivar el servicio.
+  - Pexels: https://www.pexels.com/api/
+  - Pixabay: https://pixabay.com/api/docs/
+
+Sin proveedor configurado se usa sólo material propio. Los videos de Pixabay pueden ser horizontales y se recortan a 9:16. Los proyectos existentes de Pexels siguen siendo compatibles.
 
 ## Deploy
 

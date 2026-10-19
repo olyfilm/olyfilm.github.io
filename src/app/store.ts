@@ -12,6 +12,9 @@ import {
 } from '@/core/ai';
 import { getPexelsKey, setPexelsKey as persistPexelsKey } from '@/core/pexels';
 
+import { getBrollProvider, setBrollProvider as persistBrollProvider, type BrollProvider } from '@/core/broll';
+import { getPixabayKey, setPixabayKey as persistPixabayKey } from '@/core/pixabay';
+
 export type Screen = 'home' | 'wizard' | 'cooking' | 'editor';
 
 /** Entrada del log de "cocinado" que alimenta spinners + salida en vivo. */
@@ -45,6 +48,10 @@ interface AppState {
   anthropicKey: string | null;
   openrouterKey: string | null;
   pexelsKey: string | null;
+  pixabayKey: string | null;
+  brollProvider: BrollProvider;
+  setPixabayKey: (k: string) => void;
+  setBrollProvider: (p: BrollProvider) => void;
   setProvider: (p: Provider) => void;
   setAnthropicKey: (k: string) => void;
   setOpenRouterKey: (k: string) => void;
@@ -87,6 +94,10 @@ export const useApp = create<AppState>((set) => ({
   anthropicKey: getApiKey(),
   openrouterKey: getOpenRouterKey(),
   pexelsKey: getPexelsKey(),
+  pixabayKey: getPixabayKey(),
+  brollProvider: getBrollProvider(),
+  setPixabayKey: (k) => { persistPixabayKey(k); set({ pixabayKey: k || null }); },
+  setBrollProvider: (p) => { persistBrollProvider(p); set({ brollProvider: p }); },
 
   setPlayhead: (playhead) => set({ playhead }),
   setPlaying: (playing) => set({ playing }),

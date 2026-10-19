@@ -32,14 +32,14 @@ export function createProject({ name, guion }: NewProjectInput): OlyfilmProject 
 }
 
 /**
- * Registra un clip de video (local o de Pexels), lee su metadata y lo appendea al
+ * Registra un clip de video (local, de Pexels o de Pixabay), lee su metadata y lo appendea al
  * final de la timeline. Devuelve un proyecto nuevo (inmutable).
  */
 export async function appendVideoClip(
   project: OlyfilmProject,
   file: File,
   origin: AssetOrigin = 'local',
-  pexelsId: number | null = null,
+  providerId: number | null = null,
 ): Promise<OlyfilmProject> {
   const id = uid();
   registerAsset(id, file);
@@ -62,7 +62,8 @@ export async function appendVideoClip(
     duration,
     resolution,
     blobRef: id,
-    pexelsId,
+    pexelsId: origin === 'pexels' ? providerId : null,
+    pixabayId: origin === 'pixabay' ? providerId : null,
   };
   const tlStart = totalTimelineDuration(project.timeline);
   const clip: VideoClip = {

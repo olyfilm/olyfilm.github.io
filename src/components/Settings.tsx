@@ -1,3 +1,4 @@
+import type { BrollProvider } from '@/core/broll';
 import { useState } from 'react';
 import { useApp } from '@/app/store';
 import {
@@ -32,6 +33,10 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
     anthropicKey: s.anthropicKey,
     openrouterKey: s.openrouterKey,
     pexelsKey: s.pexelsKey,
+    pixabayKey: s.pixabayKey,
+    brollProvider: s.brollProvider,
+    setPixabayKey: s.setPixabayKey,
+    setBrollProvider: s.setBrollProvider,
     setProvider: s.setProvider,
     setAnthropicKey: s.setAnthropicKey,
     setOpenRouterKey: s.setOpenRouterKey,
@@ -43,6 +48,8 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
   const [anthropic, setAnthropic] = useState(store.anthropicKey ?? '');
   const [openrouter, setOpenrouter] = useState(store.openrouterKey ?? '');
   const [pexels, setPexels] = useState(store.pexelsKey ?? '');
+  const [pixabay, setPixabay] = useState(store.pixabayKey ?? '');
+  const [brollProvider, setBrollProvider] = useState(store.brollProvider);
   const [saved, setSaved] = useState(false);
 
   const onProvider = (p: Provider) => {
@@ -58,6 +65,8 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
     store.setAnthropicKey(anthropic.trim());
     store.setOpenRouterKey(openrouter.trim());
     store.setPexelsKey(pexels.trim());
+    store.setPixabayKey(pixabay.trim());
+    store.setBrollProvider(brollProvider);
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
   };
@@ -108,6 +117,17 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
           value={openrouter}
           onChange={(e) => setOpenrouter(e.target.value)}
         />
+
+        <label className="settings__label" htmlFor="broll-provider">B-roll opcional</label>
+        <select id="broll-provider" className="ai-model" value={brollProvider}
+          onChange={(e) => setBrollProvider(e.target.value as BrollProvider)}>
+          <option value="none">Desactivado (sólo material propio)</option>
+          <option value="pexels">Pexels</option>
+          <option value="pixabay">Pixabay</option>
+        </select>
+        <label className="settings__label">API key de Pixabay (B-roll)</label>
+        <input className="ai-key" type="password" placeholder="API key de Pixabay"
+          value={pixabay} onChange={(e) => setPixabay(e.target.value)} />
 
         <label className="settings__label">API key de Pexels (B-roll)</label>
         <input

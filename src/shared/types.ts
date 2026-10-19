@@ -28,7 +28,7 @@ export interface Guion {
 }
 
 export type AssetKind = 'video' | 'audio';
-export type AssetOrigin = 'local' | 'pexels';
+export type AssetOrigin = 'local' | 'pexels' | 'pixabay';
 
 export interface Asset {
   id: string;
@@ -39,6 +39,7 @@ export interface Asset {
   resolution: [number, number] | null;
   blobRef: string | null; // clave en IndexedDB
   pexelsId: number | null;
+  pixabayId?: number | null;
 }
 
 export interface Transform {

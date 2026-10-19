@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import { useApp } from '@/app/store';
-import { downloadPexels, searchPexels, type PexelsVideo } from '@/core/pexels';
+import { downloadBroll, searchBroll, type StockVideo } from '@/core/broll';
 import { appendVideoClip } from '@/core/project';
 import type { OlyfilmProject } from '@/shared/types';
 
-export function PexelsPanel({ project }: { project: OlyfilmProject }) {
-  const { setProject, pexelsKey } = useApp((s) => ({
+export function BrollPanel({ project }: { project: OlyfilmProject }) {
+  const { setProject, pexelsKey, pixabayKey, brollProvider } = useApp((s) => ({
     setProject: s.setProject,
     pexelsKey: s.pexelsKey,
+    pixabayKey: s.pixabayKey,
+    brollProvider: s.brollProvider,
   }));
 
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<PexelsVideo[]>([]);
+  const [results, setResults] = useState<StockVideo[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [addingId, setAddingId] = useState<number | null>(null);
@@ -21,7 +23,7 @@ export function PexelsPanel({ project }: { project: OlyfilmProject }) {
     setBusy(true);
     setStatus(null);
     try {
-      const vids = await searchPexels(query.trim());
+      const vids = await searchBroll(brollProvider, query.trim());
       setResults(vids);
       if (vids.length === 0) setStatus('Sin resultados.');
     } catch (e) {
@@ -31,11 +33,11 @@ export function PexelsPanel({ project }: { project: OlyfilmProject }) {
     }
   };
 
-  const add = async (v: PexelsVideo) => {
-    setAddingId(v.pexelsId);
+  const add = async (v: StockVideo) => {
+    setAddingId(v.id);
     try {
-      const file = await downloadPexels(v);
-      const updated = await appendVideoClip(project, file, 'pexels', v.pexelsId);
+      const file = await downloadBroll(v);
+      const updated = await appendVideoClip(project, file, v.provider, v.id);
       setProject(updated);
       setStatus('✓ Clip agregado al final de la timeline.');
     } catch (e) {
@@ -45,12 +47,14 @@ export function PexelsPanel({ project }: { project: OlyfilmProject }) {
     }
   };
 
-  if (!pexelsKey) {
+  const label = brollProvider === 'pixabay' ? 'Pixabay' : 'Pexels';
+  if (brollProvider === 'none') return null;
+  if (!(brollProvider === 'pexels' ? pexelsKey : pixabayKey)) {
     return (
       <div className="sidebar__block">
-        <h3>B-roll (Pexels)</h3>
+        <h3>B-roll ({label})</h3>
         <p className="muted">
-          Cargá tu API key gratuita de Pexels en <strong>⚙ Ajustes</strong>.
+          Cargá tu API key gratuita de {label} en <strong>⚙ Ajustes</strong>.
         </p>
       </div>
     );
@@ -58,7 +62,7 @@ export function PexelsPanel({ project }: { project: OlyfilmProject }) {
 
   return (
     <div className="sidebar__block">
-      <h3>B-roll (Pexels)</h3>
+      <h3>B-roll ({label})</h3>
       <div className="pexels-search">
         <input
           className="ai-key"
@@ -73,18 +77,19 @@ export function PexelsPanel({ project }: { project: OlyfilmProject }) {
         </button>
       </div>
 
+      <p className="muted">Videos de <a href={brollProvider === 'pixabay' ? 'https://pixabay.com/' : 'https://www.pexels.com/'} target="_blank" rel="noreferrer">{label}</a>.</p>
       {results.length > 0 && (
         <div className="pexels-grid">
           {results.map((v) => (
             <button
-              key={v.pexelsId}
+              key={v.id}
               className="pexels-item"
               onClick={() => add(v)}
               disabled={addingId !== null}
               title={`${v.author} · ${v.duration}s`}
             >
               <img src={v.thumb} alt="" loading="lazy" />
-              <span className="pexels-item__add">{addingId === v.pexelsId ? '…' : '+'}</span>
+              <span className="pexels-item__add">{addingId === v.id ? '…' : '+'}</span>
             </button>
           ))}
         </div>
