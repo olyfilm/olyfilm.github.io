@@ -1,34 +1,20 @@
 import { useState } from 'react';
 import { useApp } from '@/app/store';
-import { MODELS, getApiKey, getModel, planEdits, setApiKey, setModel } from '@/core/ai';
+import { planEdits } from '@/core/ai';
 import { applyOps } from '@/core/edl/ops';
 import type { OlyfilmProject } from '@/shared/types';
 
 export function AiPanel({ project }: { project: OlyfilmProject }) {
-  const { setProject, addTokens, setPlaying } = useApp((s) => ({
+  const { setProject, addTokens, setPlaying, anthropicKey } = useApp((s) => ({
     setProject: s.setProject,
     addTokens: s.addTokens,
     setPlaying: s.setPlaying,
+    anthropicKey: s.anthropicKey,
   }));
 
-  const [hasKey, setHasKey] = useState(!!getApiKey());
-  const [keyInput, setKeyInput] = useState('');
-  const [model, setModelState] = useState(getModel());
   const [prompt, setPrompt] = useState('');
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-
-  const saveKey = () => {
-    if (!keyInput.trim()) return;
-    setApiKey(keyInput.trim());
-    setHasKey(true);
-    setKeyInput('');
-  };
-
-  const changeModel = (v: string) => {
-    setModel(v);
-    setModelState(v);
-  };
 
   const apply = async () => {
     if (!prompt.trim()) return;
@@ -65,21 +51,13 @@ export function AiPanel({ project }: { project: OlyfilmProject }) {
     }
   };
 
-  if (!hasKey) {
+  if (!anthropicKey) {
     return (
       <div className="sidebar__block">
         <h3>Editar con IA</h3>
-        <p className="muted">Pegá tu API key de Anthropic (se guarda sólo en este navegador).</p>
-        <input
-          className="ai-key"
-          type="password"
-          placeholder="sk-ant-…"
-          value={keyInput}
-          onChange={(e) => setKeyInput(e.target.value)}
-        />
-        <button className="btn btn--block" onClick={saveKey} disabled={!keyInput.trim()}>
-          Guardar key
-        </button>
+        <p className="muted">
+          Cargá tu API key de Anthropic en <strong>⚙ Ajustes</strong> (arriba a la derecha).
+        </p>
       </div>
     );
   }
@@ -87,13 +65,6 @@ export function AiPanel({ project }: { project: OlyfilmProject }) {
   return (
     <div className="sidebar__block">
       <h3>Editar con IA</h3>
-      <select className="ai-model" value={model} onChange={(e) => changeModel(e.target.value)}>
-        {MODELS.map((m) => (
-          <option key={m.id} value={m.id}>
-            {m.label}
-          </option>
-        ))}
-      </select>
       <textarea
         className="prompt-field"
         placeholder="Ej: borrá el último subtítulo y acortá el primer clip a 3 segundos…"
@@ -106,15 +77,6 @@ export function AiPanel({ project }: { project: OlyfilmProject }) {
         {busy ? 'Aplicando…' : 'Aplicar'}
       </button>
       {status && <p className="ai-status muted">{status}</p>}
-      <button
-        className="btn btn--ghost ai-changekey"
-        onClick={() => {
-          setApiKey('');
-          setHasKey(false);
-        }}
-      >
-        cambiar key
-      </button>
     </div>
   );
 }

@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import type { OlyfilmProject, Usage } from '@/shared/types';
 import { emptyUsage } from '@/shared/types';
+import { getApiKey, setApiKey as persistAnthropicKey } from '@/core/ai';
+import { getPexelsKey, setPexelsKey as persistPexelsKey } from '@/core/pexels';
 
 export type Screen = 'home' | 'wizard' | 'cooking' | 'editor';
 
@@ -29,6 +31,12 @@ interface AppState {
   playing: boolean;
   setPlayhead: (t: number) => void;
   setPlaying: (playing: boolean) => void;
+
+  // API keys (mirror de localStorage; '' las borra)
+  anthropicKey: string | null;
+  pexelsKey: string | null;
+  setAnthropicKey: (k: string) => void;
+  setPexelsKey: (k: string) => void;
 
   // navegación
   goTo: (screen: Screen) => void;
@@ -63,9 +71,20 @@ export const useApp = create<AppState>((set) => ({
   cookLog: [],
   playhead: 0,
   playing: false,
+  anthropicKey: getApiKey(),
+  pexelsKey: getPexelsKey(),
 
   setPlayhead: (playhead) => set({ playhead }),
   setPlaying: (playing) => set({ playing }),
+
+  setAnthropicKey: (k) => {
+    persistAnthropicKey(k);
+    set({ anthropicKey: k || null });
+  },
+  setPexelsKey: (k) => {
+    persistPexelsKey(k);
+    set({ pexelsKey: k || null });
+  },
 
   goTo: (screen) => set({ screen }),
 

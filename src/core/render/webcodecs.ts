@@ -1,6 +1,6 @@
 import { Muxer, ArrayBufferTarget } from 'mp4-muxer';
 import { aacNativeSupported, buildTimelineAudio, encodeAacNative, encodeWav } from './audio';
-import { drawCover, drawSubtitle } from '@/core/compositor';
+import { drawCover, drawSubtitle, resolveSubtitleStyle } from '@/core/compositor';
 
 // Render (PLAN.md H2 + audio): decodifica clips con un <video> (seek por frame),
 // recorta a 9:16 (cover), quema subtítulos en canvas, codifica con VideoEncoder,
@@ -17,6 +17,7 @@ export interface RenderSubtitle {
   start: number;
   end: number;
   text: string;
+  style?: string;
 }
 
 export interface RenderProgress {
@@ -165,7 +166,7 @@ export async function renderSpike(opts: RenderSpikeOptions): Promise<RenderResul
       }
 
       const cue = subtitles.find((c) => t >= c.start && t < c.end);
-      if (cue) drawSubtitle(ctx, cue.text, width, height);
+      if (cue) drawSubtitle(ctx, cue.text, width, height, resolveSubtitleStyle(cue.style));
 
       const frame = new VideoFrame(canvas, { timestamp: f * frameDurUs, duration: frameDurUs });
       encoder.encode(frame, { keyFrame: f % fps === 0 });

@@ -32,6 +32,15 @@ export function activeSubtitle(timeline: Timeline, t: number): string {
   return timeline.subtitles.find((c) => t >= c.start && t < c.end)?.text ?? '';
 }
 
+export function activeSubtitleCue(timeline: Timeline, t: number): SubtitleCue | null {
+  return timeline.subtitles.find((c) => t >= c.start && t < c.end) ?? null;
+}
+
+/** Estilo de subtítulo activo del proyecto (el de los cues; 'default' si no hay). */
+export function subtitleStyleName(timeline: Timeline): string {
+  return timeline.subtitles[0]?.style ?? 'default';
+}
+
 export function totalTimelineDuration(timeline: Timeline): number {
   const vEnd = timeline.video.reduce((m, c) => Math.max(m, clipTlEnd(c)), 0);
   const sEnd = timeline.subtitles.reduce((m, c) => Math.max(m, c.end), 0);
@@ -97,6 +106,7 @@ export function edlToRenderSegments(timeline: Timeline): {
     start: c.start,
     end: c.end,
     text: c.text,
+    style: c.style,
   }));
   return { segments, subtitles };
 }

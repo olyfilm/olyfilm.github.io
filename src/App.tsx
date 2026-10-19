@@ -1,5 +1,6 @@
 import { useApp } from '@/app/store';
 import { TokenBadge } from '@/components/TokenBadge';
+import { SettingsButton } from '@/components/Settings';
 import { HomeScreen } from '@/screens/HomeScreen';
 import { WizardScreen } from '@/screens/WizardScreen';
 import { CookingScreen } from '@/screens/CookingScreen';
@@ -10,7 +11,10 @@ export function App() {
 
   return (
     <div className="app">
-      <TokenBadge />
+      <div className="topbar">
+        <SettingsButton />
+        <TokenBadge />
+      </div>
       {screen === 'home' && <HomeScreen />}
       {screen === 'wizard' && <WizardScreen />}
       {screen === 'cooking' && <CookingScreen />}

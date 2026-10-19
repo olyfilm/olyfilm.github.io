@@ -2,13 +2,20 @@ import { useState } from 'react';
 import { useApp } from '@/app/store';
 import { appendVideoClip, serializeProject } from '@/core/project';
 import { webCodecsSupported, renderSpike, type RenderProgress } from '@/core/render';
-import { edlToRenderSegments, totalTimelineDuration } from '@/core/edl';
+import { edlToRenderSegments, subtitleStyleName, totalTimelineDuration } from '@/core/edl';
+import { applyOps } from '@/core/edl/ops';
+import { SUBTITLE_STYLES } from '@/core/compositor';
 import { getEntry, registerAsset } from '@/core/media/registry';
 import { putBlob } from '@/core/storage/idb';
 import { Preview } from '@/editor/Preview';
 import { Timeline, fmtTime } from '@/editor/Timeline';
 import { AiPanel } from '@/editor/AiPanel';
 import { PexelsPanel } from '@/editor/PexelsPanel';
+
+const QUALITY = {
+  '1080': { w: 1080, h: 1920, bitrate: 8_000_000, label: '1080×1920 (alta)' },
+  '720': { w: 720, h: 1280, bitrate: 4_000_000, label: '720×1280 (liviana)' },
+} as const;
 
 type RenderState =
   | { status: 'idle' }
@@ -35,6 +42,7 @@ export function EditorScreen() {
     goTo: s.goTo,
   }));
   const [render, setRender] = useState<RenderState>({ status: 'idle' });
+  const [quality, setQuality] = useState<'1080' | '720'>('1080');
 
   if (!project) {
     return (
@@ -72,14 +80,14 @@ export function EditorScreen() {
     setPlaying(false);
     setRender({ status: 'rendering', progress: { frame: 0, totalFrames: 1, stage: 'Iniciando' } });
     try {
-      const [w, h] = project.meta.resolution;
+      const q = QUALITY[quality];
       const result = await renderSpike({
         segments,
         subtitles,
-        width: w,
-        height: h,
+        width: q.w,
+        height: q.h,
         fps: project.meta.fps,
-        bitrate: 8_000_000,
+        bitrate: q.bitrate,
         onProgress: (progress) => setRender({ status: 'rendering', progress }),
       });
       setRender({
@@ -117,6 +125,11 @@ export function EditorScreen() {
     setProject({ ...project }); // forzar re-render del preview/timeline
   };
 
+  const setSubStyle = (name: string) => {
+    const { timeline } = applyOps(project.timeline, [{ op: 'setSubtitleStyle', style: name }]);
+    setProject({ ...project, timeline });
+  };
+
   return (
     <div className="screen editor">
       {/* Barra izquierda */}
@@ -133,6 +146,23 @@ export function EditorScreen() {
         </div>
 
         <AiPanel project={project} />
+
+        {project.timeline.subtitles.length > 0 && (
+          <div className="sidebar__block">
+            <h3>Subtítulos</h3>
+            <select
+              className="ai-model"
+              value={subtitleStyleName(project.timeline)}
+              onChange={(e) => setSubStyle(e.target.value)}
+            >
+              {Object.values(SUBTITLE_STYLES).map((s) => (
+                <option key={s.name} value={s.name}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <PexelsPanel project={project} />
 
@@ -190,6 +220,18 @@ export function EditorScreen() {
           <span className="editor__time">
             {fmtTime(playhead)} / {fmtTime(total)}
           </span>
+          <select
+            className="editor__quality"
+            value={quality}
+            onChange={(e) => setQuality(e.target.value as '1080' | '720')}
+            title="Calidad de export"
+          >
+            {Object.entries(QUALITY).map(([k, v]) => (
+              <option key={k} value={k}>
+                {v.label}
+              </option>
+            ))}
+          </select>
           <button
             className="btn btn--primary"
             onClick={exportMp4}

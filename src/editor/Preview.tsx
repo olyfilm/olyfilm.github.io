@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useApp } from '@/app/store';
-import { drawCover, drawSubtitle } from '@/core/compositor';
+import { drawCover, drawSubtitle, resolveSubtitleStyle } from '@/core/compositor';
 import {
-  activeSubtitle,
+  activeSubtitleCue,
   activeVideoClip,
   clipTlEnd,
   srcTimeFor,
@@ -74,7 +74,8 @@ export function Preview({ project }: { project: OlyfilmProject }) {
       const vid = getVideoEl(clip.assetId);
       if (vid.readyState >= 2) drawCover(ctx, vid, w, h);
     }
-    drawSubtitle(ctx, activeSubtitle(timeline, t), w, h);
+    const cue = activeSubtitleCue(timeline, t);
+    if (cue) drawSubtitle(ctx, cue.text, w, h, resolveSubtitleStyle(cue.style));
   };
 
   // Scrub / frame estático cuando NO se está reproduciendo.

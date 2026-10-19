@@ -1,32 +1,20 @@
 import { useState } from 'react';
 import { useApp } from '@/app/store';
-import {
-  downloadPexels,
-  getPexelsKey,
-  searchPexels,
-  setPexelsKey,
-  type PexelsVideo,
-} from '@/core/pexels';
+import { downloadPexels, searchPexels, type PexelsVideo } from '@/core/pexels';
 import { appendVideoClip } from '@/core/project';
 import type { OlyfilmProject } from '@/shared/types';
 
 export function PexelsPanel({ project }: { project: OlyfilmProject }) {
-  const setProject = useApp((s) => s.setProject);
+  const { setProject, pexelsKey } = useApp((s) => ({
+    setProject: s.setProject,
+    pexelsKey: s.pexelsKey,
+  }));
 
-  const [hasKey, setHasKey] = useState(!!getPexelsKey());
-  const [keyInput, setKeyInput] = useState('');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<PexelsVideo[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [addingId, setAddingId] = useState<number | null>(null);
-
-  const saveKey = () => {
-    if (!keyInput.trim()) return;
-    setPexelsKey(keyInput.trim());
-    setHasKey(true);
-    setKeyInput('');
-  };
 
   const search = async () => {
     if (!query.trim()) return;
@@ -57,23 +45,13 @@ export function PexelsPanel({ project }: { project: OlyfilmProject }) {
     }
   };
 
-  if (!hasKey) {
+  if (!pexelsKey) {
     return (
       <div className="sidebar__block">
         <h3>B-roll (Pexels)</h3>
         <p className="muted">
-          Pegá tu API key gratuita de Pexels (se guarda sólo en este navegador).
+          Cargá tu API key gratuita de Pexels en <strong>⚙ Ajustes</strong>.
         </p>
-        <input
-          className="ai-key"
-          type="password"
-          placeholder="API key de Pexels"
-          value={keyInput}
-          onChange={(e) => setKeyInput(e.target.value)}
-        />
-        <button className="btn btn--block" onClick={saveKey} disabled={!keyInput.trim()}>
-          Guardar key
-        </button>
       </div>
     );
   }

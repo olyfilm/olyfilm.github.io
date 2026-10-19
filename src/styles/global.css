@@ -45,12 +45,32 @@ body {
 
 .muted { color: var(--muted); font-size: .9rem; }
 
-/* ---------- token badge ---------- */
-.token-badge {
+/* ---------- barra superior (gear + badge) ---------- */
+.topbar {
   position: fixed;
   top: 14px;
   right: 16px;
   z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gear {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: border-color .15s;
+}
+.gear:hover { border-color: var(--accent); }
+
+.token-badge {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -63,6 +83,11 @@ body {
   cursor: default;
 }
 .token-badge__value { color: var(--muted); }
+
+/* ---------- settings ---------- */
+.modal__card.settings { text-align: left; width: min(440px, 92vw); }
+.settings__label { display: block; font-size: .78rem; color: var(--muted); margin: 12px 0 5px; }
+.settings__note { margin-top: 12px; font-size: .78rem; }
 
 /* ---------- screens ---------- */
 .screen { height: 100%; }
@@ -148,6 +173,7 @@ body {
 }
 .editor__transport { display: flex; gap: 12px; align-items: center; justify-content: center; }
 .editor__time { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 86px; text-align: center; }
+.editor__quality { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 8px; font: inherit; }
 
 .timeline { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; }
 .timeline__grid { display: grid; grid-template-columns: 72px 1fr; gap: 10px; }
