@@ -5,6 +5,7 @@ import { webCodecsSupported, renderSpike, type RenderProgress } from '@/core/ren
 import { edlToRenderSegments, totalTimelineDuration } from '@/core/edl';
 import { Preview } from '@/editor/Preview';
 import { Timeline, fmtTime } from '@/editor/Timeline';
+import { AiPanel } from '@/editor/AiPanel';
 
 type RenderState =
   | { status: 'idle' }
@@ -30,7 +31,6 @@ export function EditorScreen() {
     setPlaying: s.setPlaying,
     goTo: s.goTo,
   }));
-  const [prompt, setPrompt] = useState('');
   const [render, setRender] = useState<RenderState>({ status: 'idle' });
 
   if (!project) {
@@ -113,19 +113,7 @@ export function EditorScreen() {
           </button>
         </div>
 
-        <div className="sidebar__block">
-          <h3>Editar con IA</h3>
-          <textarea
-            className="prompt-field"
-            placeholder="Ej: acortá el gancho y subí el volumen de la música…"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            rows={3}
-          />
-          <button className="btn btn--block" disabled={!prompt.trim()} title="Próximamente (H5)">
-            Aplicar
-          </button>
-        </div>
+        <AiPanel project={project} />
 
         <div className="sidebar__block sidebar__block--grow">
           <h3>Colección ({wizard.assetFiles.length})</h3>
