@@ -5,6 +5,7 @@ import { parseGuion } from '@/core/guion/parser';
 import { createProject } from '@/core/project';
 import { buildTimelineFromAssets, edlToRenderSegments, totalTimelineDuration } from '@/core/edl';
 import { probeVideo, registerAsset } from '@/core/media/registry';
+import { putBlob } from '@/core/storage/idb';
 import { transcribeTimeline } from '@/core/transcribe';
 import type { Asset } from '@/shared/types';
 
@@ -42,6 +43,7 @@ export function CookingScreen() {
       for (const file of wizard.assetFiles) {
         const id = uid();
         registerAsset(id, file);
+        await putBlob(id, file).catch(() => {}); // persistir para reabrir
         const kind: Asset['kind'] = file.type.startsWith('audio') ? 'audio' : 'video';
         let duration: number | null = null;
         let resolution: [number, number] | null = null;
@@ -61,7 +63,7 @@ export function CookingScreen() {
           origin: 'local',
           duration,
           resolution,
-          blobRef: null,
+          blobRef: id,
           pexelsId: null,
         };
         assets.push(asset);

@@ -3,6 +3,8 @@ import { useApp } from '@/app/store';
 import { appendVideoClip, serializeProject } from '@/core/project';
 import { webCodecsSupported, renderSpike, type RenderProgress } from '@/core/render';
 import { edlToRenderSegments, totalTimelineDuration } from '@/core/edl';
+import { getEntry, registerAsset } from '@/core/media/registry';
+import { putBlob } from '@/core/storage/idb';
 import { Preview } from '@/editor/Preview';
 import { Timeline, fmtTime } from '@/editor/Timeline';
 import { AiPanel } from '@/editor/AiPanel';
@@ -108,6 +110,13 @@ export function EditorScreen() {
     setProject(p);
   };
 
+  const relink = async (assetId: string, file: File | undefined) => {
+    if (!file) return;
+    registerAsset(assetId, file);
+    await putBlob(assetId, file).catch(() => {});
+    setProject({ ...project }); // forzar re-render del preview/timeline
+  };
+
   return (
     <div className="screen editor">
       {/* Barra izquierda */}
@@ -130,14 +139,28 @@ export function EditorScreen() {
         <div className="sidebar__block sidebar__block--grow">
           <h3>Colección ({project.assets.length})</h3>
           <ul className="collection">
-            {project.assets.map((a) => (
-              <li key={a.id} className="collection__item">
-                <span className="collection__icon">
-                  {a.kind === 'audio' ? '🎵' : a.origin === 'pexels' ? '🅿️' : '🎬'}
-                </span>
-                <span className="collection__name">{a.name}</span>
-              </li>
-            ))}
+            {project.assets.map((a) => {
+              const missing = !getEntry(a.id);
+              return (
+                <li key={a.id} className={`collection__item${missing ? ' is-missing' : ''}`}>
+                  <span className="collection__icon">
+                    {a.kind === 'audio' ? '🎵' : a.origin === 'pexels' ? '🅿️' : '🎬'}
+                  </span>
+                  <span className="collection__name">{a.name}</span>
+                  {missing && (
+                    <label className="collection__relink" title="Media faltante: re-vincular">
+                      ⚠
+                      <input
+                        type="file"
+                        accept="video/*"
+                        hidden
+                        onChange={(e) => relink(a.id, e.target.files?.[0])}
+                      />
+                    </label>
+                  )}
+                </li>
+              );
+            })}
           </ul>
           <label className="btn btn--block">
             + Agregar material
