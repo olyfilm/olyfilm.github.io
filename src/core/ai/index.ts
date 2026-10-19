@@ -2,58 +2,114 @@ import type { OlyfilmProject } from '@/shared/types';
 import type { EdlOp } from '@/core/edl/ops';
 import { clipDuration } from '@/core/edl';
 
-// Cliente LLM (BYO API key) + planner de edición. La clave vive en localStorage y
-// sólo sale del browser hacia la API de Anthropic. El SDK se importa de forma
-// dinámica (chunk aparte). El LLM devuelve operaciones sobre el EDL (core/edl/ops).
+// Cliente LLM multi-proveedor (BYO API key). Las keys viven en localStorage y sólo
+// salen del browser hacia el proveedor elegido. El LLM devuelve operaciones sobre el
+// EDL (core/edl/ops).
+//
+// - Anthropic (Claude): llamada directa, soporta acceso directo desde el browser.
+// - OpenRouter: API compatible con OpenAI que SÍ permite CORS desde el browser, así
+//   se pueden usar modelos de OpenAI (GPT-4o, etc.) sin backend. OpenAI directo no
+//   funciona desde una SPA estática (bloquea CORS).
 
-const KEY_STORAGE = 'olyfilm.apiKey';
-const MODEL_STORAGE = 'olyfilm.model';
+export type Provider = 'anthropic' | 'openrouter';
 
-export const MODELS = [
-  { id: 'claude-opus-5-5', label: 'Opus 5.5 (máxima calidad)' },
-  { id: 'claude-sonnet-5-5', label: 'Sonnet 5.5 (equilibrio)' },
-  { id: 'claude-haiku-5-5', label: 'Haiku 5.5 (más barato)' },
-] as const;
+export const PROVIDERS: { id: Provider; label: string }[] = [
+  { id: 'anthropic', label: 'Claude (directo)' },
+  { id: 'openrouter', label: 'OpenAI / otros (OpenRouter)' },
+];
 
-const DEFAULT_MODEL = 'claude-opus-5-5';
+export const MODELS_BY_PROVIDER: Record<Provider, { id: string; label: string }[]> = {
+  anthropic: [
+    { id: 'claude-opus-5-5', label: 'Claude Opus 5.5 (máxima)' },
+    { id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5 (equilibrio)' },
+    { id: 'claude-haiku-5-5', label: 'Claude Haiku 5.5 (barato)' },
+  ],
+  openrouter: [
+    { id: 'openai/gpt-4o-mini', label: 'GPT-4o mini (barato)' },
+    { id: 'openai/gpt-4o', label: 'GPT-4o' },
+    { id: 'anthropic/claude-sonnet-4.5', label: 'Claude Sonnet 4.5 (vía OpenRouter)' },
+  ],
+};
 
-export function getApiKey(): string | null {
-  try {
-    return localStorage.getItem(KEY_STORAGE);
-  } catch {
-    return null;
-  }
+const DEFAULT_MODEL: Record<Provider, string> = {
+  anthropic: 'claude-opus-5-5',
+  openrouter: 'openai/gpt-4o-mini',
+};
+
+const K = {
+  anthropic: 'olyfilm.apiKey',
+  openrouter: 'olyfilm.openrouterKey',
+  provider: 'olyfilm.provider',
+  model: 'olyfilm.model',
+};
+
+const ls = {
+  get(k: string): string | null {
+    try {
+      return localStorage.getItem(k);
+    } catch {
+      return null;
+    }
+  },
+  set(k: string, v: string) {
+    try {
+      if (v) localStorage.setItem(k, v);
+      else localStorage.removeItem(k);
+    } catch {
+      /* modo privado */
+    }
+  },
+};
+
+// ---- provider / model ----
+
+export function getProvider(): Provider {
+  const p = ls.get(K.provider);
+  return p === 'openrouter' ? 'openrouter' : 'anthropic';
 }
-
-export function setApiKey(key: string): void {
-  try {
-    if (key) localStorage.setItem(KEY_STORAGE, key);
-    else localStorage.removeItem(KEY_STORAGE);
-  } catch {
-    /* modo privado */
-  }
+export function setProvider(p: Provider): void {
+  ls.set(K.provider, p);
 }
 
 export function getModel(): string {
-  try {
-    return localStorage.getItem(MODEL_STORAGE) ?? DEFAULT_MODEL;
-  } catch {
-    return DEFAULT_MODEL;
-  }
+  return ls.get(K.model) ?? DEFAULT_MODEL[getProvider()];
+}
+export function setModel(model: string): void {
+  ls.set(K.model, model);
+}
+export function defaultModelFor(p: Provider): string {
+  return DEFAULT_MODEL[p];
 }
 
-export function setModel(model: string): void {
-  try {
-    localStorage.setItem(MODEL_STORAGE, model);
-  } catch {
-    /* modo privado */
-  }
+// ---- keys ----
+
+export function getApiKey(): string | null {
+  return ls.get(K.anthropic);
 }
+export function setApiKey(key: string): void {
+  ls.set(K.anthropic, key);
+}
+export function getOpenRouterKey(): string | null {
+  return ls.get(K.openrouter);
+}
+export function setOpenRouterKey(key: string): void {
+  ls.set(K.openrouter, key);
+}
+/** Key del proveedor activo (o el indicado). */
+export function getProviderKey(p: Provider = getProvider()): string | null {
+  return p === 'openrouter' ? getOpenRouterKey() : getApiKey();
+}
+
+// ---- planner ----
 
 export interface PlanResult {
   ops: EdlOp[];
   usage: { in: number; out: number };
   rawText: string;
+}
+
+export interface PlanOptions {
+  onStatus?: (s: string) => void;
 }
 
 function systemPrompt(): string {
@@ -64,7 +120,7 @@ function systemPrompt(): string {
     '- {"op":"setSubtitleText","id":"<id>","text":"<texto>"}',
     '- {"op":"removeSubtitle","id":"<id>"}',
     '- {"op":"shiftSubtitles","seconds":<número>}  // corre todos los subtítulos',
-    '- {"op":"setSubtitleStyle","style":"<nombre>"}',
+    '- {"op":"setSubtitleStyle","style":"default|boxed|yellow|center"}',
     '- {"op":"removeClip","id":"<id>"}',
     '- {"op":"moveClip","id":"<id>","tlStart":<segundos>}',
     '- {"op":"trimClip","id":"<id>","srcIn":<seg?>,"srcOut":<seg?>}',
@@ -74,6 +130,8 @@ function systemPrompt(): string {
     'Si la instrucción no requiere cambios, devolvé {"ops": []}. No agregues texto fuera del JSON.',
   ].join('\n');
 }
+
+const round = (n: number) => Math.round(n * 100) / 100;
 
 function summarizeProject(project: OlyfilmProject): string {
   const clips = project.timeline.video.map((c) => ({
@@ -92,12 +150,9 @@ function summarizeProject(project: OlyfilmProject): string {
   return JSON.stringify({ clips, subtitles: subs }, null, 0);
 }
 
-const round = (n: number) => Math.round(n * 100) / 100;
-
 /** Extrae un array de operaciones de la respuesta del modelo (tolerante a fences). */
 export function parseOps(text: string): EdlOp[] {
   const cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-  // buscar el primer bloque JSON (objeto o array)
   const match = cleaned.match(/[[{][\s\S]*[\]}]/);
   const raw = match ? match[0] : cleaned;
   let data: unknown;
@@ -116,8 +171,48 @@ export function parseOps(text: string): EdlOp[] {
   return arr.filter((o: unknown) => o && typeof o === 'object' && 'op' in o) as EdlOp[];
 }
 
-export interface PlanOptions {
-  onStatus?: (s: string) => void;
+async function planWithAnthropic(key: string, model: string, sys: string, user: string, onStatus?: (s: string) => void) {
+  onStatus?.('Cargando cliente…');
+  const Anthropic = (await import('@anthropic-ai/sdk')).default;
+  const client = new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true });
+  onStatus?.('Pensando la edición…');
+  const msg = await client.messages.create({
+    model,
+    max_tokens: 4096,
+    system: sys,
+    messages: [{ role: 'user', content: user }],
+  });
+  const rawText = msg.content.map((b) => (b.type === 'text' ? b.text : '')).join('\n');
+  return { rawText, usage: { in: msg.usage.input_tokens, out: msg.usage.output_tokens } };
+}
+
+async function planWithOpenRouter(key: string, model: string, sys: string, user: string, onStatus?: (s: string) => void) {
+  onStatus?.('Pensando la edición…');
+  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://olyfilm.github.io',
+      'X-Title': 'olyfilm',
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: 'system', content: sys },
+        { role: 'user', content: user },
+      ],
+      response_format: { type: 'json_object' },
+      max_tokens: 2048,
+    }),
+  });
+  if (!res.ok) throw new Error(`OpenRouter ${res.status}: ${(await res.text()).slice(0, 180)}`);
+  const data = await res.json();
+  const rawText = data.choices?.[0]?.message?.content ?? '';
+  return {
+    rawText,
+    usage: { in: data.usage?.prompt_tokens ?? 0, out: data.usage?.completion_tokens ?? 0 },
+  };
 }
 
 export async function planEdits(
@@ -125,33 +220,18 @@ export async function planEdits(
   userPrompt: string,
   opts: PlanOptions = {},
 ): Promise<PlanResult> {
-  const apiKey = getApiKey();
-  if (!apiKey) throw new Error('Falta la API key. Cargala en el panel de IA.');
+  const provider = getProvider();
+  const key = getProviderKey(provider);
+  if (!key) throw new Error(`Falta la API key de ${provider === 'openrouter' ? 'OpenRouter' : 'Anthropic'}.`);
 
-  opts.onStatus?.('Cargando cliente…');
-  const Anthropic = (await import('@anthropic-ai/sdk')).default;
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+  const model = getModel();
+  const sys = systemPrompt();
+  const user = `EDL actual:\n${summarizeProject(project)}\n\nInstrucción:\n${userPrompt}`;
 
-  opts.onStatus?.('Pensando la edición…');
-  const message = await client.messages.create({
-    model: getModel(),
-    max_tokens: 4096,
-    system: systemPrompt(),
-    messages: [
-      {
-        role: 'user',
-        content: `EDL actual:\n${summarizeProject(project)}\n\nInstrucción:\n${userPrompt}`,
-      },
-    ],
-  });
+  const { rawText, usage } =
+    provider === 'anthropic'
+      ? await planWithAnthropic(key, model, sys, user, opts.onStatus)
+      : await planWithOpenRouter(key, model, sys, user, opts.onStatus);
 
-  const rawText = message.content
-    .map((b) => (b.type === 'text' ? b.text : ''))
-    .join('\n');
-
-  return {
-    ops: parseOps(rawText),
-    usage: { in: message.usage.input_tokens, out: message.usage.output_tokens },
-    rawText,
-  };
+  return { ops: parseOps(rawText), usage, rawText };
 }

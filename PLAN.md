@@ -13,7 +13,7 @@ El core es IA: lee el guion, transcribe el audio a subtítulos, evalúa el mater
 | Área | Decisión | Por qué |
 | --- | --- | --- |
 | Hosting | Estático en GitHub Pages | Sin servidor propio que mantener. |
-| Cerebro (LLM) | **BYO API key** (Anthropic/OpenAI) en `localStorage` | Calidad real de razonamiento sin backend; la clave nunca sale del browser salvo hacia la API del proveedor. |
+| Cerebro (LLM) | **BYO API key** multi-proveedor en `localStorage` | Calidad real sin backend. **Claude (Anthropic) directo** (soporta browser access). **OpenAI directo NO se puede** desde una SPA estática (bloquea CORS), así que los modelos de OpenAI (GPT-4o…) van **vía OpenRouter** (compatible con OpenAI, CORS ok). Selector de proveedor en ⚙ Ajustes. |
 | Render final | **WebCodecs + muxer MP4** (`mp4-muxer`) | Encode/decode por hardware, rápido; ideal para reels cortos. ffmpeg.wasm queda como fallback evaluable. |
 | Transcripción | **Whisper vía transformers.js** (WebGPU), fallback Web Speech API | En el browser, sin servicio externo. |
 | B-roll | **Pexels API** directa (CORS ok) con API key del usuario | Simple y gratis. |

@@ -1,7 +1,15 @@
 import { create } from 'zustand';
 import type { OlyfilmProject, Usage } from '@/shared/types';
 import { emptyUsage } from '@/shared/types';
-import { getApiKey, setApiKey as persistAnthropicKey } from '@/core/ai';
+import {
+  getApiKey,
+  getOpenRouterKey,
+  getProvider,
+  setApiKey as persistAnthropicKey,
+  setOpenRouterKey as persistOpenRouterKey,
+  setProvider as persistProvider,
+  type Provider,
+} from '@/core/ai';
 import { getPexelsKey, setPexelsKey as persistPexelsKey } from '@/core/pexels';
 
 export type Screen = 'home' | 'wizard' | 'cooking' | 'editor';
@@ -32,10 +40,14 @@ interface AppState {
   setPlayhead: (t: number) => void;
   setPlaying: (playing: boolean) => void;
 
-  // API keys (mirror de localStorage; '' las borra)
+  // Proveedor de IA + API keys (mirror de localStorage; '' las borra)
+  provider: Provider;
   anthropicKey: string | null;
+  openrouterKey: string | null;
   pexelsKey: string | null;
+  setProvider: (p: Provider) => void;
   setAnthropicKey: (k: string) => void;
+  setOpenRouterKey: (k: string) => void;
   setPexelsKey: (k: string) => void;
 
   // navegación
@@ -71,15 +83,25 @@ export const useApp = create<AppState>((set) => ({
   cookLog: [],
   playhead: 0,
   playing: false,
+  provider: getProvider(),
   anthropicKey: getApiKey(),
+  openrouterKey: getOpenRouterKey(),
   pexelsKey: getPexelsKey(),
 
   setPlayhead: (playhead) => set({ playhead }),
   setPlaying: (playing) => set({ playing }),
 
+  setProvider: (p) => {
+    persistProvider(p);
+    set({ provider: p });
+  },
   setAnthropicKey: (k) => {
     persistAnthropicKey(k);
     set({ anthropicKey: k || null });
+  },
+  setOpenRouterKey: (k) => {
+    persistOpenRouterKey(k);
+    set({ openrouterKey: k || null });
   },
   setPexelsKey: (k) => {
     persistPexelsKey(k);

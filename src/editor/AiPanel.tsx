@@ -5,12 +5,15 @@ import { applyOps } from '@/core/edl/ops';
 import type { OlyfilmProject } from '@/shared/types';
 
 export function AiPanel({ project }: { project: OlyfilmProject }) {
-  const { setProject, addTokens, setPlaying, anthropicKey } = useApp((s) => ({
+  const { setProject, addTokens, setPlaying, provider, anthropicKey, openrouterKey } = useApp((s) => ({
     setProject: s.setProject,
     addTokens: s.addTokens,
     setPlaying: s.setPlaying,
+    provider: s.provider,
     anthropicKey: s.anthropicKey,
+    openrouterKey: s.openrouterKey,
   }));
+  const ready = provider === 'openrouter' ? !!openrouterKey : !!anthropicKey;
 
   const [prompt, setPrompt] = useState('');
   const [status, setStatus] = useState<string | null>(null);
@@ -51,12 +54,13 @@ export function AiPanel({ project }: { project: OlyfilmProject }) {
     }
   };
 
-  if (!anthropicKey) {
+  if (!ready) {
     return (
       <div className="sidebar__block">
         <h3>Editar con IA</h3>
         <p className="muted">
-          Cargá tu API key de Anthropic en <strong>⚙ Ajustes</strong> (arriba a la derecha).
+          Cargá tu API key de <strong>{provider === 'openrouter' ? 'OpenRouter' : 'Anthropic'}</strong>{' '}
+          en <strong>⚙ Ajustes</strong> (arriba a la derecha).
         </p>
       </div>
     );
