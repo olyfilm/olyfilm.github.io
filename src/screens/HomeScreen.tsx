@@ -1,4 +1,5 @@
 import { useApp } from '@/app/store';
+import { clearRegistry } from '@/core/media/registry';
 
 export function HomeScreen() {
   const goTo = useApp((s) => s.goTo);
@@ -6,6 +7,7 @@ export function HomeScreen() {
   const resetUsage = useApp((s) => s.resetUsage);
 
   const newProject = () => {
+    clearRegistry();
     resetWizard();
     resetUsage();
     goTo('wizard');

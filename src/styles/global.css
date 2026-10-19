@@ -131,28 +131,33 @@ body {
 
 .editor__main { display: flex; flex-direction: column; min-width: 0; padding: 18px; gap: 14px; }
 .preview { flex: 1; display: grid; place-items: center; min-height: 0; }
-.preview__frame {
-  aspect-ratio: 9 / 16; height: 100%; max-height: 52vh;
+.preview__canvas {
+  height: 100%; max-height: 52vh; aspect-ratio: 9 / 16;
   background: #000; border: 1px solid var(--border); border-radius: 12px;
-  display: grid; place-items: center;
 }
-.preview__placeholder { color: var(--muted); }
-.editor__transport { display: flex; gap: 10px; justify-content: center; }
+.editor__transport { display: flex; gap: 12px; align-items: center; justify-content: center; }
+.editor__time { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 86px; text-align: center; }
 
-.timeline { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; display: flex; flex-direction: column; gap: 6px; }
-.timeline__track { display: flex; align-items: center; gap: 10px; }
-.timeline__label { width: 72px; font-size: .72rem; text-transform: uppercase; color: var(--muted); flex: none; }
-.timeline__lane { flex: 1; display: flex; gap: 3px; height: 34px; }
+.timeline { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; }
+.timeline__grid { display: grid; grid-template-columns: 72px 1fr; gap: 10px; }
+.timeline__labels { display: flex; flex-direction: column; gap: 6px; }
+.timeline__label { height: 34px; display: flex; align-items: center; font-size: .72rem; text-transform: uppercase; color: var(--muted); }
+.timeline__lanes { position: relative; display: flex; flex-direction: column; gap: 6px; cursor: pointer; }
+.timeline__lane { position: relative; height: 34px; background: var(--surface-2); border-radius: 6px; overflow: hidden; }
 .chunk {
-  flex: 1 1 0; min-width: 0; border-radius: 5px; font-size: .68rem;
-  display: grid; place-items: center; overflow: hidden; white-space: nowrap;
-  padding: 0 6px; color: #fff; opacity: .85;
+  position: absolute; top: 0; bottom: 0; min-width: 2px;
+  border-radius: 5px; font-size: .68rem;
+  display: flex; align-items: center; padding: 0 6px;
+  color: #fff; overflow: hidden; white-space: nowrap; opacity: .9;
 }
 .chunk--video { background: #3b5bdb; }
 .chunk--broll { background: #2f8a6d; }
 .chunk--overlay { background: #b07d2b; }
 .chunk--subtitles { background: #7048a8; }
 .chunk--music { background: #a03858; }
+.timeline__empty { color: var(--muted); font-size: .7rem; line-height: 34px; padding-left: 6px; }
+.timeline__playhead { position: absolute; top: 0; bottom: 0; width: 2px; background: #fff; pointer-events: none; box-shadow: 0 0 5px rgba(255,255,255,.7); }
+.timeline__scale { display: flex; justify-content: space-between; margin-top: 8px; padding-left: 82px; font-size: .7rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 
 /* ---------- modal de render ---------- */
 .modal {

@@ -3,33 +3,20 @@ import { useApp } from '@/app/store';
 import { Spinner } from '@/components/Spinner';
 import { parseGuion } from '@/core/guion/parser';
 import { createProject } from '@/core/project';
-
-interface Stage {
-  key: string;
-  label: string;
-  detail: string;
-  // tokens simulados hasta que H4/H5 traigan el consumo real
-  tokens?: [number, number];
-}
-
-const PIPELINE: Stage[] = [
-  { key: 'parse', label: 'Parseando el guion', detail: 'Tabla de tiempos → bloques' },
-  { key: 'inventory', label: 'Inventariando material', detail: 'Duración y resolución de cada clip' },
-  { key: 'transcribe', label: 'Transcribiendo audio', detail: 'Whisper local → subtítulos' },
-  { key: 'match', label: 'Asociando clips al guion', detail: 'IA elige qué clip va en cada bloque', tokens: [1800, 400] },
-  { key: 'gaps', label: 'Detectando huecos', detail: 'Bloques sin material → B-roll de Pexels', tokens: [900, 150] },
-  { key: 'edl', label: 'Ensamblando el montaje', detail: 'Cortes, textos en pantalla y subtítulos' },
-];
+import { buildTimelineFromAssets } from '@/core/edl';
+import { probeVideo, registerAsset } from '@/core/media/registry';
+import type { Asset } from '@/shared/types';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const uid = () =>
+  (crypto.randomUUID?.() ?? `a${Date.now()}${Math.random().toString(36).slice(2)}`);
 
 export function CookingScreen() {
-  const { wizard, cookLog, pushCookLog, clearCookLog, addTokens, setProject, goTo } = useApp((s) => ({
+  const { wizard, cookLog, pushCookLog, clearCookLog, setProject, goTo } = useApp((s) => ({
     wizard: s.wizard,
     cookLog: s.cookLog,
     pushCookLog: s.pushCookLog,
     clearCookLog: s.clearCookLog,
-    addTokens: s.addTokens,
     setProject: s.setProject,
     goTo: s.goTo,
   }));
@@ -42,16 +29,65 @@ export function CookingScreen() {
 
     (async () => {
       clearCookLog();
-      const guion = parseGuion(wizard.guionMarkdown ?? '');
 
-      for (const stage of PIPELINE) {
-        pushCookLog(stage.label, stage.detail);
-        await sleep(650);
-        if (stage.tokens) addTokens('cocinado', stage.tokens[0], stage.tokens[1]);
+      // 1. Guion
+      const guion = parseGuion(wizard.guionMarkdown ?? '');
+      pushCookLog('Analizando el guion', `${guion.blocks.length} bloques detectados`);
+      await sleep(350);
+
+      // 2. Inventario del material (duración/resolución reales)
+      const assets: Asset[] = [];
+      const videoAssets: Asset[] = [];
+      for (const file of wizard.assetFiles) {
+        const id = uid();
+        registerAsset(id, file);
+        const kind: Asset['kind'] = file.type.startsWith('audio') ? 'audio' : 'video';
+        let duration: number | null = null;
+        let resolution: [number, number] | null = null;
+        if (kind === 'video') {
+          try {
+            const p = await probeVideo(id);
+            duration = Math.round(p.duration * 100) / 100;
+            resolution = [p.width, p.height];
+          } catch {
+            /* clip ilegible: queda sin metadata */
+          }
+        }
+        const asset: Asset = {
+          id,
+          kind,
+          name: file.name,
+          origin: 'local',
+          duration,
+          resolution,
+          blobRef: null,
+          pexelsId: null,
+        };
+        assets.push(asset);
+        if (kind === 'video') videoAssets.push(asset);
+        pushCookLog(
+          'Analizando material',
+          `${file.name}${duration ? ` · ${duration}s` : ''}`,
+        );
+        await sleep(120);
       }
 
+      // 3. Transcripción + B-roll con IA → pendiente (H4/H5)
+      pushCookLog('Transcripción y B-roll con IA', 'pendiente — próximo hito');
+      await sleep(250);
+
+      // 4. Montaje (EDL determinístico desde el guion)
+      pushCookLog('Armando el montaje', 'Cortes y subtítulos desde el guion');
+      const timeline = buildTimelineFromAssets(videoAssets, guion.blocks);
+      await sleep(300);
+
       const name = wizard.guionFileName?.replace(/\.md$/i, '') ?? 'Proyecto sin título';
-      setProject(createProject({ name, guion }));
+      const project = createProject({ name, guion });
+      project.assets = assets;
+      project.timeline = timeline;
+      setProject(project);
+
+      pushCookLog('Listo', 'Abriendo el editor');
       await sleep(400);
       goTo('editor');
     })();
@@ -67,7 +103,7 @@ export function CookingScreen() {
       <div className="cooking__center">
         <Spinner size={56} />
         <h2>Cocinando tu short…</h2>
-        <p className="muted">Leyendo el guion, transcribiendo y armando el montaje.</p>
+        <p className="muted">Analizando el guion y el material, y armando el montaje.</p>
 
         <div className="cooking__log" ref={logRef}>
           {cookLog.map((l, i) => (

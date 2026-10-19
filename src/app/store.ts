@@ -24,6 +24,12 @@ interface AppState {
   wizard: WizardDraft;
   cookLog: CookLog[];
 
+  // reproducción del preview
+  playhead: number;
+  playing: boolean;
+  setPlayhead: (t: number) => void;
+  setPlaying: (playing: boolean) => void;
+
   // navegación
   goTo: (screen: Screen) => void;
 
@@ -55,6 +61,11 @@ export const useApp = create<AppState>((set) => ({
   usage: emptyUsage(),
   wizard: emptyWizard(),
   cookLog: [],
+  playhead: 0,
+  playing: false,
+
+  setPlayhead: (playhead) => set({ playhead }),
+  setPlaying: (playing) => set({ playing }),
 
   goTo: (screen) => set({ screen }),
 
@@ -76,7 +87,7 @@ export const useApp = create<AppState>((set) => ({
 
   clearCookLog: () => set({ cookLog: [] }),
 
-  setProject: (project) => set({ project }),
+  setProject: (project) => set({ project, playhead: 0, playing: false }),
 
   addTokens: (stage, inTok, outTok) =>
     set((s) => ({

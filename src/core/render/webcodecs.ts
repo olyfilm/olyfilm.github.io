@@ -1,5 +1,6 @@
 import { Muxer, ArrayBufferTarget } from 'mp4-muxer';
 import { aacNativeSupported, buildTimelineAudio, encodeAacNative, encodeWav } from './audio';
+import { drawCover, drawSubtitle } from '@/core/compositor';
 
 // Render (PLAN.md H2 + audio): decodifica clips con un <video> (seek por frame),
 // recorta a 9:16 (cover), quema subtítulos en canvas, codifica con VideoEncoder,
@@ -96,51 +97,6 @@ function seek(el: HTMLVideoElement, t: number): Promise<void> {
     el.addEventListener('seeked', onSeeked);
     el.currentTime = target;
   });
-}
-
-function drawCover(ctx: CanvasRenderingContext2D, el: HTMLVideoElement, w: number, h: number) {
-  const vw = el.videoWidth || w;
-  const vh = el.videoHeight || h;
-  const scale = Math.max(w / vw, h / vh);
-  const dw = vw * scale;
-  const dh = vh * scale;
-  ctx.drawImage(el, (w - dw) / 2, (h - dh) / 2, dw, dh);
-}
-
-function drawSubtitle(ctx: CanvasRenderingContext2D, text: string, w: number, h: number) {
-  if (!text) return;
-  const fontSize = Math.round(h * 0.036);
-  ctx.font = `600 ${fontSize}px system-ui, sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'bottom';
-
-  // word-wrap a ~86% del ancho
-  const maxWidth = w * 0.86;
-  const words = text.split(/\s+/);
-  const lines: string[] = [];
-  let line = '';
-  for (const word of words) {
-    const test = line ? `${line} ${word}` : word;
-    if (ctx.measureText(test).width > maxWidth && line) {
-      lines.push(line);
-      line = word;
-    } else {
-      line = test;
-    }
-  }
-  if (line) lines.push(line);
-
-  const lineH = fontSize * 1.25;
-  // subtítulos lejos de los controles de plataforma (≈18% desde abajo)
-  let y = h - h * 0.18 - (lines.length - 1) * lineH;
-  ctx.lineWidth = Math.max(3, fontSize * 0.14);
-  ctx.strokeStyle = 'rgba(0,0,0,0.85)';
-  ctx.fillStyle = '#fff';
-  for (const l of lines) {
-    ctx.strokeText(l, w / 2, y + lineH);
-    ctx.fillText(l, w / 2, y + lineH);
-    y += lineH;
-  }
 }
 
 export async function renderSpike(opts: RenderSpikeOptions): Promise<RenderResult> {

@@ -183,10 +183,10 @@ Como todo el razonamiento usa la API con clave del usuario, el consumo es visibl
 ## 9. Roadmap por hitos
 
 - **H0 — Scaffold.** ✅ Vite + React + TS, router de pantallas (home/wizard/cooking/editor), estado base (Zustand), parser de guion, badge de tokens, tipos del `.olyfilm`, workflow de deploy a Pages.
-- **H1 — Wizard + parser de guion.** 3 pasos, carga de .md y archivos, parse a `blocks`, persistencia en IndexedDB.
+- **H1 — Wizard + parser de guion.** ✅ (parcial) 3 pasos, carga de .md y archivos, parse a `blocks`, **cocinado real** (inventario de material con duración/resolución reales, sin tokens falsos). Assets en un **registro en memoria** (object URLs); la persistencia en IndexedDB se difiere a H7.
 - **H2 — Spike de render (el eslabón riesgoso).** ✅ Cortar clips + quemar subtítulos + **audio** + exportar MP4 9:16 con WebCodecs + mp4-muxer. **Validado end-to-end**: produce un MP4 h264/avc1 1080×1920 @30fps con pista de audio, bien formado (verificado con ffprobe). Camino técnico confirmado.
   - **Audio ✅**: se extrae el PCM de los clips (`decodeAudioData`), se reubica en la timeline y se codifica a **AAC**. **Nativo** con `AudioEncoder` en el target (iPhone 17+ / iOS 26) y Win/Mac/Android; **fallback ffmpeg.wasm lazy** (dynamic import, chunk aparte de ~32 MB que el target nunca descarga) para Linux/Firefox/iOS<26. **Validado end-to-end**: ffprobe confirma MP4 con `aac (LC) 48kHz stereo`. Opus descartado. Falta: pista de música separada y niveles.
-- **H3 — Editor base.** Preview en vivo + timeline multi-track leyendo el EDL (sin IA todavía).
+- **H3 — Editor base.** ✅ **Preview en vivo** (canvas compositor compartido con el export → WYSIWYG, con audio, play/pausa y scrub) + **timeline multi-track leyendo el EDL real** (clips posicionados por tiempo, playhead, click-to-seek). Export desde el EDL. Validado end-to-end manejando la app por UI (Playwright): cocinado→EDL, preview no-negro, MP4 h264+AAC con ffprobe. ⚠️ Preview en iOS (drawImage de `<video>` fuera del DOM, autoplay con audio) a confirmar en dispositivo.
 - **H4 — Cocinado real.** Pipeline §5 con transcripción (Whisper) y matching básico; log de progreso.
 - **H5 — IA de edición.** Cliente LLM (BYO key), prompts de edición en el sidebar, planner que emite operaciones sobre el EDL, **medidor de tokens + badge 🪙**.
 - **H6 — Pexels.** Detección de huecos + búsqueda + descarga de B-roll.

@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { useApp } from '@/app/store';
 import { serializeProject } from '@/core/project';
-import {
-  webCodecsSupported,
-  renderSpike,
-  buildSpikeTimeline,
-  type RenderProgress,
-} from '@/core/render';
+import { webCodecsSupported, renderSpike, type RenderProgress } from '@/core/render';
+import { edlToRenderSegments, totalTimelineDuration } from '@/core/edl';
+import { Preview } from '@/editor/Preview';
+import { Timeline, fmtTime } from '@/editor/Timeline';
 
 type RenderState =
   | { status: 'idle' }
@@ -23,10 +21,13 @@ type RenderState =
   | { status: 'error'; message: string };
 
 export function EditorScreen() {
-  const { project, wizard, usage, goTo } = useApp((s) => ({
+  const { project, wizard, usage, playing, playhead, setPlaying, goTo } = useApp((s) => ({
     project: s.project,
     wizard: s.wizard,
     usage: s.usage,
+    playing: s.playing,
+    playhead: s.playhead,
+    setPlaying: s.setPlaying,
     goTo: s.goTo,
   }));
   const [prompt, setPrompt] = useState('');
@@ -52,19 +53,20 @@ export function EditorScreen() {
   };
 
   const totalTokens = usage.totalIn + usage.totalOut;
-
-  const videoFiles = wizard.assetFiles.filter((f) => f.type.startsWith('video'));
+  const total = totalTimelineDuration(project.timeline);
+  const hasClips = project.timeline.video.length > 0;
 
   const exportMp4 = async () => {
     if (!webCodecsSupported()) {
       setRender({ status: 'error', message: 'Este navegador no soporta WebCodecs. Probá Chrome/Edge.' });
       return;
     }
-    if (videoFiles.length === 0) {
-      setRender({ status: 'error', message: 'No hay clips de video en la colección para renderizar.' });
+    const { segments, subtitles } = edlToRenderSegments(project.timeline);
+    if (segments.length === 0) {
+      setRender({ status: 'error', message: 'El montaje no tiene clips de video para renderizar.' });
       return;
     }
-    const { segments, subtitles } = buildSpikeTimeline(videoFiles, project.guion.blocks);
+    setPlaying(false);
     setRender({ status: 'rendering', progress: { frame: 0, totalFrames: 1, stage: 'Iniciando' } });
     try {
       const [w, h] = project.meta.resolution;
@@ -146,43 +148,29 @@ export function EditorScreen() {
 
       {/* Centro: preview */}
       <main className="editor__main">
-        <div className="preview">
-          <div className="preview__frame">
-            <span className="preview__placeholder">Vista previa 9:16</span>
-          </div>
-        </div>
+        <Preview project={project} />
 
         <div className="editor__transport">
-          <button className="btn" disabled title="Próximamente (H3)">▶ Reproducir</button>
+          <button
+            className="btn"
+            onClick={() => setPlaying(!playing)}
+            disabled={!hasClips}
+          >
+            {playing ? '⏸ Pausar' : '▶ Reproducir'}
+          </button>
+          <span className="editor__time">
+            {fmtTime(playhead)} / {fmtTime(total)}
+          </span>
           <button
             className="btn btn--primary"
             onClick={exportMp4}
-            disabled={render.status === 'rendering'}
+            disabled={render.status === 'rendering' || !hasClips}
           >
             ⬇ Exportar MP4 · {totalTokens} tok
           </button>
         </div>
 
-        {/* Timeline / carrete */}
-        <div className="timeline">
-          {(['video', 'broll', 'overlay', 'subtitles', 'music'] as const).map((track) => (
-            <div key={track} className="timeline__track">
-              <span className="timeline__label">{track}</span>
-              <div className="timeline__lane">
-                {project.guion.blocks.map((b) => (
-                  <div
-                    key={b.id}
-                    className={`chunk chunk--${track}`}
-                    style={{ flexGrow: Math.max(1, b.tEnd - b.tStart) }}
-                    title={`${b.tStart}–${b.tEnd}s · ${b.estructura}`}
-                  >
-                    {track === 'subtitles' ? b.locucion.slice(0, 18) : b.estructura}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+        <Timeline project={project} />
       </main>
 
       {render.status !== 'idle' && (

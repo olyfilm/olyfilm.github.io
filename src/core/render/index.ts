@@ -17,7 +17,3 @@ export type {
   RenderSpikeOptions,
   RenderResult,
 } from './webcodecs';
-export { buildSpikeTimeline } from './spikeTimeline';
-
-// TODO (post-H2): pista de audio (AudioEncoder) y render desde el EDL real en vez
-// del spike timeline.
