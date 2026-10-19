@@ -128,6 +128,11 @@ body {
 .ai-key, .ai-model { width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 8px; font: inherit; margin-bottom: 8px; }
 .ai-status { margin: 8px 0 0; }
 .ai-changekey { font-size: .75rem; padding: 4px 0; color: var(--muted); }
+.pexels-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 8px; }
+.pexels-item { position: relative; padding: 0; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; cursor: pointer; background: var(--surface-2); aspect-ratio: 9 / 16; }
+.pexels-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pexels-item__add { position: absolute; bottom: 2px; right: 5px; color: #fff; font-weight: 700; text-shadow: 0 0 4px #000; }
+.pexels-item:disabled { opacity: .5; cursor: default; }
 .collection { list-style: none; padding: 0; margin: 0 0 8px; flex: 1; overflow-y: auto; }
 .collection__item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--surface-2); border-radius: 7px; margin-bottom: 5px; font-size: .85rem; }
 .collection__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

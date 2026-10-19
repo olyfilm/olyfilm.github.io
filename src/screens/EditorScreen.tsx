@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useApp } from '@/app/store';
-import { serializeProject } from '@/core/project';
+import { appendVideoClip, serializeProject } from '@/core/project';
 import { webCodecsSupported, renderSpike, type RenderProgress } from '@/core/render';
 import { edlToRenderSegments, totalTimelineDuration } from '@/core/edl';
 import { Preview } from '@/editor/Preview';
 import { Timeline, fmtTime } from '@/editor/Timeline';
 import { AiPanel } from '@/editor/AiPanel';
+import { PexelsPanel } from '@/editor/PexelsPanel';
 
 type RenderState =
   | { status: 'idle' }
@@ -22,13 +23,13 @@ type RenderState =
   | { status: 'error'; message: string };
 
 export function EditorScreen() {
-  const { project, wizard, usage, playing, playhead, setPlaying, goTo } = useApp((s) => ({
+  const { project, usage, playing, playhead, setPlaying, setProject, goTo } = useApp((s) => ({
     project: s.project,
-    wizard: s.wizard,
     usage: s.usage,
     playing: s.playing,
     playhead: s.playhead,
     setPlaying: s.setPlaying,
+    setProject: s.setProject,
     goTo: s.goTo,
   }));
   const [render, setRender] = useState<RenderState>({ status: 'idle' });
@@ -98,6 +99,15 @@ export function EditorScreen() {
     setRender({ status: 'idle' });
   };
 
+  const addLocal = async (files: FileList | null) => {
+    if (!files) return;
+    let p = project;
+    for (const f of Array.from(files)) {
+      if (f.type.startsWith('video')) p = await appendVideoClip(p, f, 'local');
+    }
+    setProject(p);
+  };
+
   return (
     <div className="screen editor">
       {/* Barra izquierda */}
@@ -115,20 +125,28 @@ export function EditorScreen() {
 
         <AiPanel project={project} />
 
+        <PexelsPanel project={project} />
+
         <div className="sidebar__block sidebar__block--grow">
-          <h3>Colección ({wizard.assetFiles.length})</h3>
+          <h3>Colección ({project.assets.length})</h3>
           <ul className="collection">
-            {wizard.assetFiles.map((f, i) => (
-              <li key={`${f.name}-${i}`} className="collection__item">
-                <span className="collection__icon">{f.type.startsWith('audio') ? '🎵' : '🎬'}</span>
-                <span className="collection__name">{f.name}</span>
+            {project.assets.map((a) => (
+              <li key={a.id} className="collection__item">
+                <span className="collection__icon">
+                  {a.kind === 'audio' ? '🎵' : a.origin === 'pexels' ? '🅿️' : '🎬'}
+                </span>
+                <span className="collection__name">{a.name}</span>
               </li>
             ))}
           </ul>
           <label className="btn btn--block">
             + Agregar material
-            <input type="file" accept="video/*,audio/*" multiple hidden
-              onChange={(e) => e.target.files && useApp.getState().addAssetFiles(Array.from(e.target.files))}
+            <input
+              type="file"
+              accept="video/*"
+              multiple
+              hidden
+              onChange={(e) => addLocal(e.target.files)}
             />
           </label>
         </div>
