@@ -3,8 +3,9 @@ import { useApp } from '@/app/store';
 import { Spinner } from '@/components/Spinner';
 import { parseGuion } from '@/core/guion/parser';
 import { createProject } from '@/core/project';
-import { buildTimelineFromAssets } from '@/core/edl';
+import { buildTimelineFromAssets, edlToRenderSegments, totalTimelineDuration } from '@/core/edl';
 import { probeVideo, registerAsset } from '@/core/media/registry';
+import { transcribeTimeline } from '@/core/transcribe';
 import type { Asset } from '@/shared/types';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -72,14 +73,43 @@ export function CookingScreen() {
         await sleep(120);
       }
 
-      // 3. Transcripción + B-roll con IA → pendiente (H4/H5)
-      pushCookLog('Transcripción y B-roll con IA', 'pendiente — próximo hito');
-      await sleep(250);
-
-      // 4. Montaje (EDL determinístico desde el guion)
+      // 3. Montaje base (EDL determinístico desde el guion)
       pushCookLog('Armando el montaje', 'Cortes y subtítulos desde el guion');
       const timeline = buildTimelineFromAssets(videoAssets, guion.blocks);
-      await sleep(300);
+      await sleep(200);
+
+      // 4. Transcripción real del audio → subtítulos (Whisper local)
+      try {
+        const { segments } = edlToRenderSegments(timeline);
+        const total = totalTimelineDuration(timeline);
+        pushCookLog('Transcribiendo audio', 'Whisper local…');
+        let lastPct = -1;
+        const cues = await transcribeTimeline(segments, total, {
+          language: 'spanish',
+          onProgress: (p) => {
+            if (p.stage === 'transcribe') {
+              pushCookLog('Transcribiendo audio', p.detail);
+              return;
+            }
+            // descarga: sólo el modelo grande (.onnx) y en pasos de ~10%
+            if (p.ratio == null || !/\.onnx/.test(p.detail)) return;
+            const pct = Math.floor(p.ratio * 100);
+            if (pct >= lastPct + 10 || pct === 100) {
+              lastPct = pct;
+              pushCookLog('Descargando modelo', `${pct}%`);
+            }
+          },
+        });
+        if (cues.length > 0) {
+          timeline.subtitles = cues;
+          pushCookLog('Subtítulos listos', `${cues.length} segmentos desde el audio`);
+        } else {
+          pushCookLog('Sin voz detectada', 'uso los subtítulos del guion');
+        }
+      } catch {
+        pushCookLog('Transcripción no disponible', 'uso los subtítulos del guion');
+      }
+      await sleep(200);
 
       const name = wizard.guionFileName?.replace(/\.md$/i, '') ?? 'Proyecto sin título';
       const project = createProject({ name, guion });

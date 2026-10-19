@@ -11,8 +11,8 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
-  // ffmpeg.wasm trae su propio worker; que Vite no lo pre-bundlee.
+  // ffmpeg.wasm y transformers.js traen workers/wasm propios; que Vite no los pre-bundlee.
   optimizeDeps: {
-    exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util'],
+    exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util', '@huggingface/transformers'],
   },
 });
