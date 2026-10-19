@@ -139,16 +139,17 @@ export const useApp = create<AppState>((set) => ({
 
   clearCookLog: () => set({ cookLog: [] }),
 
-  setProject: (project) => set({ project, playhead: 0, playing: false }),
+  setProject: (project) => set({ project, ...(project ? { usage: project.usage } : {}), playhead: 0, playing: false }),
 
   addTokens: (stage, inTok, outTok) =>
-    set((s) => ({
-      usage: {
+    set((s) => {
+      const usage = {
         totalIn: s.usage.totalIn + inTok,
         totalOut: s.usage.totalOut + outTok,
         byStage: { ...s.usage.byStage, [stage]: s.usage.byStage[stage] + inTok + outTok },
-      },
-    })),
+      };
+      return { usage, project: s.project ? { ...s.project, usage } : null };
+    }),
 
   resetUsage: () => set({ usage: emptyUsage() }),
 }));

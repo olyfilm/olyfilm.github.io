@@ -235,3 +235,13 @@ export async function planEdits(
 
   return { ops: parseOps(rawText), usage, rawText };
 }
+
+/** Una llamada al proveedor configurado; contabilizar antes de interpretar el JSON. */
+export async function requestPlan(system: string, user: string, opts: PlanOptions = {}) {
+  const provider = getProvider();
+  const key = getProviderKey(provider);
+  if (!key) throw new Error('Falta la API key del proveedor de IA.');
+  return provider === 'anthropic'
+    ? planWithAnthropic(key, getModel(), system, user, opts.onStatus)
+    : planWithOpenRouter(key, getModel(), system, user, opts.onStatus);
+}

@@ -27,6 +27,7 @@ export function HomeScreen() {
       const project = parseProject(await file.text());
       clearRegistry();
       resetUsage();
+      useApp.getState().clearCookLog();
       const missing = await rehydrateProject(project);
       setProject(project);
       goTo('editor');

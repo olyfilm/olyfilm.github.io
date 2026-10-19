@@ -10,7 +10,10 @@ Sitio: **https://olyfilm.github.io/** · Target de ejecución: **iPhone 17+ (iOS
 
 1. **Wizard** — cargás el guion `.md` y la colección de video/audio.
 2. **Cocinado** — analiza el material, **transcribe el audio con Whisper** (local, transformers.js)
-   y arma el montaje (EDL).
+   y arma el montaje (EDL). Con una API key de IA configurada, el LLM elige fragmentos y orden
+   según el guion, los nombres de archivos y las transcripciones completas; los tokens aparecen
+   en el contador. Sin clave o ante un error, conserva el montaje base. El detalle queda en
+   «Detalle de la generación» del editor. No analiza imágenes ni descarga B-roll automáticamente.
 3. **Editor** — preview en vivo 9:16 (WYSIWYG con el export), timeline con los clips y subtítulos,
    **edición por prompts con IA**, y **B-roll opcional de Pexels o Pixabay**.
 4. **Export** — render a **MP4 H.264 + AAC** con WebCodecs (fallback ffmpeg.wasm donde no hay AAC nativo).
@@ -47,3 +50,5 @@ GitHub Pages en cada push a `main`. Requiere, una sola vez, poner la fuente de P
 ## Más
 
 El diseño, las decisiones y el roadmap están en [PLAN.md](PLAN.md).
+
+Pruebas del planner de cocinado: `node --test tests/cooking.test.mjs` (respuestas simuladas, sin consumir API).

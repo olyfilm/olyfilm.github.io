@@ -33,6 +33,7 @@ export function AiPanel({ project }: { project: OlyfilmProject }) {
         const { timeline, applied, warnings } = applyOps(project.timeline, ops);
         setProject({
           ...project,
+          usage: useApp.getState().usage,
           timeline,
           promptHistory: [
             ...project.promptHistory,

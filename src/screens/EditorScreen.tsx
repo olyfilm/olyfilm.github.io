@@ -41,6 +41,7 @@ export function EditorScreen() {
     setProject: s.setProject,
     goTo: s.goTo,
   }));
+  const cookLog = useApp((s) => s.cookLog);
   const brollProvider = useApp((s) => s.brollProvider);
   const [render, setRender] = useState<RenderState>({ status: 'idle' });
   const [quality, setQuality] = useState<'1080' | '720'>('1080');
@@ -163,6 +164,13 @@ export function EditorScreen() {
               ))}
             </select>
           </div>
+        )}
+
+        {cookLog.length > 0 && (
+          <details className="sidebar__block">
+            <summary>Detalle de la generación</summary>
+            {cookLog.map((entry, i) => <p className="muted" key={i}><strong>{entry.stage}:</strong> {entry.detail}</p>)}
+          </details>
         )}
 
         <BrollPanel key={brollProvider} project={project} />

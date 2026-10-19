@@ -210,3 +210,9 @@ Orden recomendado para arrancar: **H0 → H2** (scaffold y después validar el r
 ### B-roll opcional (implementado)
 
 Ajustes permite desactivar el B-roll o elegir Pexels/Pixabay con claves independientes. Las instalaciones nuevas arrancan desactivadas; una clave Pexels existente conserva ese proveedor. Panel manual común, procedencia e ID por proveedor en los assets, compatible con proyectos anteriores. Pixabay usa búsqueda en español y recorte del editor a 9:16. Validación con respuestas simuladas y build; pendiente prueba con claves reales.
+
+### Montaje con LLM durante el cocinado (implementado)
+
+Tras inventariar y transcribir cada video completo con Whisper local, se envían al proveedor de IA configurado el guion, los nombres/duraciones y las transcripciones con tiempos de fuente. El LLM devuelve una secuencia de fragmentos (puede reutilizar una fuente). El plan se valida íntegramente antes de aplicarlo: IDs de video existentes, tiempos finitos dentro de la duración, máximo 100 clips/120 segundos. Los subtítulos de voz se recortan y reubican con el montaje; sin transcripción se usa el guion. No hay análisis visual ni búsqueda automática de B-roll todavía.
+
+El contador suma el usage real en `cocinado` antes de interpretar la respuesta y lo persiste en el proyecto, incluso si el JSON falla. Sin clave o ante un error se mantiene el montaje base y el motivo queda visible en «Detalle de la generación». Guardar/reabrir y las ediciones posteriores conservan el consumo acumulado. Validado con build y pruebas simuladas de selección, recortes, subtítulos y contabilización ante respuesta inválida; pendiente prueba con claves reales.
